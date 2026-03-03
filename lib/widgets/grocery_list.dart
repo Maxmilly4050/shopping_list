@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
 
-
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
 
@@ -14,21 +13,80 @@ class _GroceryListState extends State<GroceryList> {
   final List<GroceryItem> groceryItems = [];
 
   void _addItem() async {
-     final newItem = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (ctx) => const NewItem(),
-        ),
-      );
-      if (newItem == null) {
-        return;
-      }
-      setState(() {
-        groceryItems.addAll(newItem);
-      });
+    final newItem = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => const NewItem(),
+      ),
+    );
+    if (newItem == null) {
+      return;
     }
+    setState(() {
+      groceryItems.add(newItem);
+    });
+  }
+
+  void _removeItem(GroceryItem item) {
+    final itemIndex = groceryItems.indexOf(item);
+    setState(() {
+      groceryItems.remove(item);
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.name} removed.'),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              groceryItems.insert(itemIndex, item);
+            });
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    Widget content = const Center(
+      child: Text(
+        'No items yet. Start adding some groceries!',
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+      ),
+    );
+
+    if (groceryItems.isNotEmpty) {
+      content = ListView.builder(
+        itemCount: groceryItems.length,
+        itemBuilder: (ctx, index) => Dismissible(
+          key: ValueKey(groceryItems[index].id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          onDismissed: (direction) {
+            _removeItem(groceryItems[index]);
+          },
+          child: ListTile(
+            title: Text(groceryItems[index].name),
+            leading: Container(
+              width: 24,
+              height: 24,
+              color: groceryItems[index].category.color,
+            ),
+            trailing: Text(
+              groceryItems[index].quantity.toString(),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Groceries'),
@@ -39,112 +97,7 @@ class _GroceryListState extends State<GroceryList> {
           )
         ],
       ),
-      body: ListView.builder(
-        itemCount: groceryItems.length,
-        itemBuilder: (ctx, index) => ListTile(
-          title: Text(groceryItems[index].name),
-          leading: Container(
-            width: 24,
-            height: 24,
-            color: groceryItems[index].category.color,
-          ),
-          trailing: Text(
-            groceryItems[index].quantity.toString(),
-          ),
-        ),
-      ),
+      body: content,
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import 'package:flutter/material.dart';
-// import 'package:shopping_list/data/dummy_items.dart';
-
-// class HomeScreen extends StatelessWidget {
-//   final String title;
-
-//   const HomeScreen({super.key, required this.title});
-
-//   @override
-//   Widget build(BuildContext context) {
-
-//   final grocery = groceryItems;
-
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(title),
-//       ),
-//       body: ListView(
-//         children: grocery.map((item) =>
-//           Row(
-//             children: [
-//               Container(
-//                 margin: const EdgeInsets.only(left: 10),
-//                 padding: const EdgeInsets.all(16.0),
-//                 color: item.category.color,
-//               ),
-//               Container(
-//                 padding: const EdgeInsets.all(16.0),
-//                 child: Text(
-//                   item.category.name,
-//                   style: TextStyle(fontSize: 20,),
-//                 ),
-//               ),
-//               Spacer(),
-//               Container(
-//                 padding: const EdgeInsets.all(16.0),
-//                 child: Text(
-//                   item.quantity.toString(),
-//                   style: TextStyle(fontSize: 20.0,),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ).toList(),
-//       ),
-//     );
-//   }
-// }
