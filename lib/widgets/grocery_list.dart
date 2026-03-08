@@ -16,12 +16,24 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   final List<GroceryItem> groceryItems = [];
   var _isLoading = true;
+  String? _error;
   
   Future<void> _loaditems () async {
-    final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
+    final url = Uri.https('flu-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
     final response = await http.get(url);
+    print(response.statusCode);
+
+    if (response.statusCode >= 400) {
+      setState(() {
+        _error = 'Failed to load items. Please try again later.';
+        _isLoading = false; // also stop loading on error
+      });
+      return; // stop execution here
+    }
+
     final Map<String, dynamic> listData = json.decode(response.body);
     final List<GroceryItem> loadedItems = [];
+
     listData.forEach((itemId, itemData) {
       final category = categories.entries.firstWhere((catItem) => catItem.value.name == itemData['category']).value;
       loadedItems.add(
@@ -29,7 +41,7 @@ class _GroceryListState extends State<GroceryList> {
           id: itemId,
           name: itemData['name'],
           quantity: int.parse(itemData['quantity']),
-          category: category
+          category: category,
         ),
       );
     });
@@ -93,6 +105,15 @@ class _GroceryListState extends State<GroceryList> {
     if (_isLoading) {
       content = const Center(
         child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      content = Center(
+        child: Text(
+          _error!,
+          style: const TextStyle(fontSize: 16, color: Colors.red),
+        ),
       );
     }
 
