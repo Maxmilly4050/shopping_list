@@ -15,6 +15,7 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   final List<GroceryItem> groceryItems = [];
+  var _isLoading = true;
   
   Future<void> _loaditems () async {
     final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
@@ -35,6 +36,7 @@ class _GroceryListState extends State<GroceryList> {
     setState(() {
       groceryItems.clear();
       groceryItems.addAll(loadedItems);
+      _isLoading = false;
     });
   }
 
@@ -45,11 +47,16 @@ class _GroceryListState extends State<GroceryList> {
     }
 
   Future<void> _addItem() async {
-    await Navigator.of(context).push(
+    final newItem = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (ctx) => const NewItem(),
       ),
     );
+    if (newItem != null) {
+      setState(() {
+        groceryItems.add(newItem);
+      });
+    }
   }
 
   void _removeItem(GroceryItem item) {
@@ -82,6 +89,12 @@ class _GroceryListState extends State<GroceryList> {
         style: TextStyle(fontSize: 16, color: Colors.grey),
       ),
     );
+
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
     if (groceryItems.isNotEmpty) {
       content = ListView.builder(
