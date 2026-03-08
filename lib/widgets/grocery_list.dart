@@ -19,7 +19,7 @@ class _GroceryListState extends State<GroceryList> {
   String? _error;
   
   Future<void> _loaditems () async {
-    final url = Uri.https('flu-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
+    final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
     final response = await http.get(url);
     print(response.statusCode);
 
@@ -72,7 +72,10 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _removeItem(GroceryItem item) {
-    final itemIndex = groceryItems.indexOf(item);
+    final itemIndex = groceryItems.indexOf(item); // save index before removal
+    final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list/${item.id}.json');
+    http.delete(url);
+
     setState(() {
       groceryItems.remove(item);
     });
@@ -83,9 +86,15 @@ class _GroceryListState extends State<GroceryList> {
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () {
+          onPressed: () async {
+            final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list/${item.id}.json');
+            await http.put(url, body: json.encode({
+              'name': item.name,
+              'quantity': item.quantity.toString(),
+              'category': item.category.name,
+            }));
             setState(() {
-              groceryItems.insert(itemIndex, item);
+              groceryItems.insert(itemIndex, item); // re-insert at original index
             });
           },
         ),
