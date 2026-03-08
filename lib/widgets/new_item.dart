@@ -22,6 +22,7 @@ class _NewItemState extends State<NewItem> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
+      // ignore: unused_local_variable
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -31,15 +32,6 @@ class _NewItemState extends State<NewItem> {
           'category': _selectedCategory.name,
         }),
       );
-       print(response.body);
-      // Navigator.of(context).pop({
-      //   GroceryItem(
-      //     id: DateTime.now().toString(),
-      //     name: _enteredName,
-      //     quantity: _enteredQuantity,
-      //     category: _selectedCategory,
-      //   )
-      // });
     }
   }
 
