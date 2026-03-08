@@ -139,7 +139,7 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(onPressed: _isSending ? null : _resetForm, child: const Text('Reset')),
-                  ElevatedButton(onPressed: _isSending ? null : _saveItem, child: const Text('Add Item')),
+                  ElevatedButton(onPressed: _isSending ? null : _saveItem, child: _isSending ? SizedBox(height: 16, width: 16, child: const CircularProgressIndicator()) : const Text('Add Item')),
                 ],
               ),
             ],
