@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -18,38 +20,52 @@ class _GroceryListState extends State<GroceryList> {
   var _isLoading = true;
   String? _error;
   
-  Future<void> _loaditems () async {
+  Future<void> _loaditems() async {
     final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list.json');
-    final response = await http.get(url);
-    print(response.statusCode);
+    
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode >= 400) {
-      setState(() {
-        _error = 'Failed to load items. Please try again later.';
-        _isLoading = false; // also stop loading on error
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to load items. Please try again later.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> listData = json.decode(response.body);
+      final List<GroceryItem> loadedItems = [];
+
+      listData.forEach((itemId, itemData) {
+        final category = categories.entries.firstWhere((catItem) => catItem.value.name == itemData['category']).value;
+        loadedItems.add(
+          GroceryItem(
+            id: itemId,
+            name: itemData['name'],
+            quantity: int.parse(itemData['quantity']),
+            category: category,
+          ),
+        );
       });
-      return; // stop execution here
+      setState(() {
+        groceryItems.clear();
+        groceryItems.addAll(loadedItems);
+        _isLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _error = 'Something went wrong! Please try again later.';
+        _isLoading = false;
+      });
     }
-
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> loadedItems = [];
-
-    listData.forEach((itemId, itemData) {
-      final category = categories.entries.firstWhere((catItem) => catItem.value.name == itemData['category']).value;
-      loadedItems.add(
-        GroceryItem(
-          id: itemId,
-          name: itemData['name'],
-          quantity: int.parse(itemData['quantity']),
-          category: category,
-        ),
-      );
-    });
-    setState(() {
-      groceryItems.clear();
-      groceryItems.addAll(loadedItems);
-      _isLoading = false;
-    });
   }
 
   @override
@@ -72,13 +88,13 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _removeItem(GroceryItem item) {
-    final itemIndex = groceryItems.indexOf(item); // save index before removal
+    final itemIndex = groceryItems.indexOf(item);
     final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list/${item.id}.json');
-    http.delete(url);
 
     setState(() {
       groceryItems.remove(item);
     });
+
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,19 +103,41 @@ class _GroceryListState extends State<GroceryList> {
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () async {
-            final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list/${item.id}.json');
-            await http.put(url, body: json.encode({
-              'name': item.name,
-              'quantity': item.quantity.toString(),
-              'category': item.category.name,
-            }));
-            setState(() {
-              groceryItems.insert(itemIndex, item); // re-insert at original index
-            });
+            try {
+              final url = Uri.https('flutter-prep-e9940-default-rtdb.firebaseio.com', 'shopping-list/${item.id}.json');
+              await http.put(url, body: json.encode({
+                'name': item.name,
+                'quantity': item.quantity.toString(),
+                'category': item.category.name,
+              }));
+              setState(() {
+                groceryItems.insert(itemIndex, item);
+              });
+            } catch (error) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to undo. Please try again.'),
+                ),
+              );
+            }
           },
         ),
       ),
     );
+
+    try {
+      http.delete(url);
+    } catch (error) {
+      // re-insert item if delete fails
+      setState(() {
+        groceryItems.insert(itemIndex, item);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete item. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
